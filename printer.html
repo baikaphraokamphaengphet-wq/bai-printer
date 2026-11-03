@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>เครื่องพิมพ์ใบสั่ง</title>
+<!--
+  หน้าเครื่องพิมพ์ใบสั่ง สำหรับมือถือ Android ที่ร้านปลายทาง
+  - เปิดด้วย Chrome บน Android และต้องเปิดผ่าน https (เช่น GitHub Pages) ห้ามเปิดผ่านลิงก์ Apps Script
+  - เครื่องพิมพ์ต้องเป็นบลูทูธแบบ BLE (Bluetooth 4.0 ขึ้นไป) ที่รองรับคำสั่ง ESC/POS
+  - พิมพ์เป็นรูปภาพ ภาษาไทยจึงออกครบทุกสระวรรณยุกต์
+-->
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:'Sarabun','Noto Sans Thai',system-ui,sans-serif;background:#f4f1ea;color:#2b2b2b;font-size:17px}
+header{background:#2f6b3f;color:#fff;padding:12px 14px;font-weight:800;font-size:19px;display:flex;justify-content:space-between;align-items:center}
+header small{font-weight:600;font-size:15px;opacity:.9}
+main{padding:12px;max-width:640px;margin:0 auto}
+.card{background:#fff;border-radius:14px;padding:12px;margin-bottom:10px;box-shadow:0 1px 3px #0001}
+.lbl{font-size:14px;color:#666;margin:10px 0 4px}
+input,select{font:inherit;padding:12px;border:2px solid #d8d2c4;border-radius:10px;width:100%;background:#fff}
+.btn{padding:14px;border:0;border-radius:12px;font:inherit;font-weight:800;color:#fff;background:#2f6b3f;width:100%;font-size:18px}
+.btn.gray{background:#8b8574}
+.btn.sm{padding:8px 12px;width:auto;font-size:15px}
+.row{display:flex;gap:8px;margin-top:10px}
+.st{display:flex;align-items:center;gap:10px;font-weight:700}
+.dot{width:16px;height:16px;border-radius:50%;background:#bbb;flex:none}
+.ok .dot{background:#2f9e44}
+.bad .dot{background:#d0342c}
+.bad{color:#b3372b}
+.alert{background:#b3372b;color:#fff;border-radius:14px;padding:14px;margin-bottom:10px;font-weight:800;display:none}
+.tk{display:flex;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid #eee}
+.tk:last-child{border:0}
+.tk small{display:block;color:#777}
+.tag{font-size:13px;padding:2px 8px;border-radius:10px;background:#e9e4d6;margin-left:6px}
+.tag.new{background:#fff3c9;color:#8a5a00}
+.tag.cancel{background:#fde2df;color:#b3372b}
+.muted{color:#888;text-align:center;padding:14px}
+#pv{position:fixed;inset:0;background:#0008;display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:20px;z-index:9}
+#pv canvas{background:#fff;max-width:100%;box-shadow:0 2px 12px #0005}
+</style>
+</head>
+<body>
+<header><span>🖨️ เครื่องพิมพ์ใบสั่ง</span><small id="shopLbl"></small></header>
+<main>
+  <div class="alert" id="alert"></div>
+
+  <div class="card" id="setup" style="display:none">
+    <b>ตั้งค่า (ทำครั้งเดียว)</b>
+    <div class="lbl">ลิงก์เว็บแอป POS (ลงท้ายด้วย /exec)</div><input id="cUrl" placeholder="https://script.google.com/macros/s/.../exec">
+    <div class="lbl">รหัสเครื่องพิมพ์ (PRINT_KEY ใน Code.gs)</div><input id="cKey">
+    <div class="row"><button class="btn gray" id="cLoad">โหลดรายชื่อร้าน</button></div>
+    <div class="lbl">เครื่องนี้อยู่ที่ร้าน</div><select id="cShop"></select>
+    <div class="lbl">ขนาดกระดาษ</div><select id="cWidth"><option value="58">58 มม.</option><option value="80">80 มม.</option></select>
+    <div class="row"><button class="btn" id="cSave">บันทึก</button></div>
+  </div>
+
+  <div class="card">
+    <div class="st" id="pSt"><span class="dot"></span><span id="pTxt">ยังไม่ได้เชื่อมต่อเครื่องพิมพ์</span></div>
+    <div class="st" id="sSt" style="margin-top:8px"><span class="dot"></span><span id="sTxt">ยังไม่ได้ตรวจออเดอร์</span></div>
+    <div class="row"><button class="btn" id="bConn">🔗 เชื่อมต่อเครื่องพิมพ์</button></div>
+    <div class="row"><button class="btn gray" id="bTest">พิมพ์ทดสอบ</button><button class="btn gray" id="bSet">ตั้งค่า</button></div>
+  </div>
+
+  <div class="card"><b>ใบสั่งล่าสุด</b><div id="list"><div class="muted">-</div></div></div>
+</main>
+<div id="pv"></div>
+
+<script>
+var C = loadCfg();
+var P = { dev: null, ch: null, chunk: 100, busy: false };
+var queue = [], seen = {}, done = {}, recent = [];
+var audio = null, wake = null;
+// บริการ BLE ที่เครื่องพิมพ์ความร้อนราคาประหยัดนิยมใช้
+var SERVICES = [
+  '000018f0-0000-1000-8000-00805f9b34fb', 'e7810a71-73ae-499d-8c15-faa9aef0c3f2', '49535343-fe7d-4ae5-8fa9-9fafd205e455',
+  '0000ff00-0000-1000-8000-00805f9b34fb', '0000ffe0-0000-1000-8000-00805f9b34fb', '0000fee7-0000-1000-8000-00805f9b34fb',
+  '0000ae30-0000-1000-8000-00805f9b34fb', '0000af30-0000-1000-8000-00805f9b34fb'
+];
+
+function $(s) { return document.querySelector(s); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function loadCfg() { try { return JSON.parse(localStorage.getItem('printer_cfg')) || {}; } catch (e) { return {}; } }
+function saveCfg() { try { localStorage.setItem('printer_cfg', JSON.stringify(C)); } catch (e) {} }
+function hm(s) { return String(s || '').substr(11, 5); }
+
+function setSt(id, ok, txt) { var el = $(id); el.className = 'st ' + (ok ? 'ok' : 'bad'); el.querySelector('span:last-child').textContent = txt; }
+function showAlert(txt) { var a = $('#alert'); a.textContent = txt || ''; a.style.display = txt ? 'block' : 'none'; }
+
+/* ---------- เสียง / เปิดจอค้าง ---------- */
+function beep(times) {
+  if (!audio) return;
+  for (var i = 0; i < (times || 2); i++) {
+    var o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + i * 0.35;
+    o.frequency.value = 1100; o.connect(g); g.connect(audio.destination);
+    g.gain.setValueAtTime(0.4, t); g.gain.setValueAtTime(0, t + 0.22);
+    o.start(t); o.stop(t + 0.25);
+  }
+}
+function keepAwake() {
+  if (!('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+  navigator.wakeLock.request('screen').then(function (w) { wake = w; }).catch(function () {});
+}
+document.addEventListener('visibilitychange', keepAwake);
+
+/* ---------- ตั้งค่า ---------- */
+function api(q) {
+  return fetch(C.url + '?' + q + '&key=' + encodeURIComponent(C.key) + '&t=' + Date.now()).then(function (r) { return r.json(); }).then(function (r) {
+    if (!r.ok) throw new Error(r.error || 'เซิร์ฟเวอร์ตอบผิดพลาด');
+    return r;
+  });
+}
+function showSetup() {
+  $('#setup').style.display = 'block';
+  $('#cUrl').value = C.url || ''; $('#cKey').value = C.key || ''; $('#cWidth').value = C.width || '58';
+  $('#cShop').innerHTML = C.shop ? '<option>' + esc(C.shop) + '</option>' : '';
+}
+$('#bSet').onclick = showSetup;
+$('#cLoad').onclick = function () {
+  C.url = $('#cUrl').value.trim(); C.key = $('#cKey').value.trim();
+  api('api=shops').then(function (r) {
+    $('#cShop').innerHTML = r.shops.map(function (s) { return '<option' + (s === C.shop ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
+  }).catch(function (e) { alert('โหลดไม่สำเร็จ: ' + e.message); });
+};
+$('#cSave').onclick = function () {
+  C.url = $('#cUrl').value.trim(); C.key = $('#cKey').value.trim(); C.shop = $('#cShop').value; C.width = $('#cWidth').value;
+  if (!C.url || !C.key || !C.shop) { alert('กรอกลิงก์ รหัส และเลือกร้านให้ครบ'); return; }
+  saveCfg(); $('#setup').style.display = 'none'; $('#shopLbl').textContent = C.shop; poll();
+};
+
+/* ---------- บลูทูธ ---------- */
+$('#bConn').onclick = function () {
+  if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  keepAwake();
+  if (!navigator.bluetooth) { alert('เครื่องนี้ใช้บลูทูธจากหน้าเว็บไม่ได้\nต้องเปิดด้วย Chrome บน Android และเปิดลิงก์แบบ https'); return; }
+  navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES }).then(function (dev) {
+    P.dev = dev;
+    dev.addEventListener('gattserverdisconnected', onDisconnect);
+    return attach();
+  }).catch(function (e) { if (e.name !== 'NotFoundError') setSt('#pSt', false, 'เชื่อมต่อไม่สำเร็จ: ' + e.message); });
+};
+async function attach() {
+  setSt('#pSt', false, 'กำลังเชื่อมต่อ ' + (P.dev.name || '') + '...');
+  var server = await P.dev.gatt.connect();
+  var services = await server.getPrimaryServices();
+  for (var s of services) {
+    var chs = await s.getCharacteristics();
+    for (var c of chs) {
+      if (c.properties.write || c.properties.writeWithoutResponse) {
+        P.ch = c;
+        setSt('#pSt', true, 'เชื่อมต่อแล้ว: ' + (P.dev.name || 'เครื่องพิมพ์'));
+        showAlert('');
+        runQueue();
+        return;
+      }
+    }
+  }
+  throw new Error('ไม่พบช่องสั่งพิมพ์ในเครื่องนี้ (อาจไม่ใช่เครื่องพิมพ์แบบ BLE)');
+}
+function onDisconnect() {
+  P.ch = null;
+  setSt('#pSt', false, 'เครื่องพิมพ์หลุด กำลังต่อใหม่...');
+  beep(3);
+  reconnect();
+}
+async function reconnect() {
+  for (var i = 0; i < 1000 && P.dev && !P.ch; i++) {
+    try { await attach(); return; } catch (e) { await sleep(5000); }
+  }
+}
+// ส่งข้อมูลทีละก้อน ถ้าก้อนใหญ่ไปเครื่องพิมพ์รับไม่ได้ จะลดเหลือ 20 ไบต์
+async function send(bytes) {
+  var ch = P.ch, i = 0;
+  while (i < bytes.length) {
+    var part = bytes.slice(i, i + P.chunk);
+    try {
+      if (ch.properties.write) await ch.writeValueWithResponse(part);
+      else { await ch.writeValueWithoutResponse(part); await sleep(20); }
+      i += part.length;
+    } catch (e) {
+      if (P.chunk > 20) { P.chunk = 20; continue; }
+      throw e;
+    }
+  }
+}
+
+/* ---------- วาดใบสั่งเป็นรูป ---------- */
+var FONT = '"Sarabun","Noto Sans Thai",sans-serif';
+var segWord = window.Intl && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'word' }) : null;
+var segChar = window.Intl && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+function parts(text, seg) { return seg ? Array.from(seg.segment(text), function (x) { return x.segment; }) : Array.from(text); }
+// ตัดบรรทัดตามคำ (ภาษาไทยไม่มีเว้นวรรค) ถ้าคำยาวเกินบรรทัดค่อยตัดตามตัวอักษร
+function wrap(ctx, text, maxW) {
+  var lines = [], cur = '';
+  parts(String(text), segWord).forEach(function (w) {
+    if (ctx.measureText(cur + w).width <= maxW) { cur += w; return; }
+    if (cur) { lines.push(cur); cur = ''; }
+    if (ctx.measureText(w).width <= maxW) { cur = w.replace(/^\s+/, ''); return; }
+    parts(w, segChar).forEach(function (g) {
+      if (ctx.measureText(cur + g).width > maxW && cur) { lines.push(cur); cur = ''; }
+      cur += g;
+    });
+  });
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+function num(n) { return Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: 2 }); }
+// "2026-10-30 13:05:00" → "30/10/2569 13:05"
+function thDate(s) { s = String(s || ''); return s.length < 16 ? s : Number(s.substr(8, 2)) + '/' + s.substr(5, 2) + '/' + (Number(s.substr(0, 4)) + 543) + ' ' + s.substr(11, 5); }
+function receiptBlocks(t) {
+  var s = {}, B = [];
+  try { s = JSON.parse(t.info || '{}'); } catch (e) {}
+  B.push({ t: t.fromShop || C.shop || '', s: 34, b: 1, c: 1 });
+  B.push({ t: 'ใบเสร็จรับเงิน', s: 26, c: 1 });
+  B.push({ t: 'โต๊ะ ' + t.table, rt: thDate(s.paidAt || t.createdAt), s: 24 });
+  B.push({ hr: 1 });
+  (t.lines || []).forEach(function (l) {
+    B.push({ t: l.qty + ' x ' + (l.name || l.category) + ' ' + num(l.price), rt: num(l.price * l.qty), s: 26 });
+  });
+  B.push({ hr: 1 });
+  if (s.discount) {
+    B.push({ t: 'รวม', rt: num(s.gross), s: 26 });
+    B.push({ t: 'ส่วนลด', rt: '-' + num(s.discount), s: 26 });
+  }
+  B.push({ t: 'ยอดสุทธิ', rt: num(s.total), s: 36, b: 1 });
+  B.push({ t: 'ชำระด้วย' + (s.method || ''), rt: s.cash ? num(s.cash) : '', s: 24 });
+  if (s.cash) B.push({ t: 'เงินทอน', rt: num(s.cash - s.total), s: 24 });
+  B.push({ hr: 1 });
+  B.push({ t: 'ขอบคุณที่ใช้บริการ', s: 26, c: 1 });
+  return B;
+}
+function ticketBlocks(t) {
+  if (t.type === 'receipt') return receiptBlocks(t);
+  var B = [], title = { order: '', cancel: '*** ยกเลิกรายการ ***', move: '*** ย้ายโต๊ะ ***' }[t.type] || '';
+  B.push({ t: 'จาก ' + (t.fromShop || '-') + '   ' + hm(t.createdAt), s: 24 });
+  if (title) B.push({ t: title, s: 36, b: 1, inv: 1, c: 1 });
+  if (t.info) B.push({ t: t.info, s: 28, b: 1 });
+  B.push({ t: 'เสิร์ฟที่ ' + (t.zone || ''), s: 32, b: 1, c: 1 });
+  B.push({ t: 'โต๊ะ ' + t.table, s: 64, b: 1, c: 1 });
+  B.push({ hr: 1 });
+  (t.lines || []).forEach(function (l) {
+    B.push({ t: l.qty + ' x ' + (l.name || l.category) + ' ' + l.price, s: 34, b: 1 });
+    if (l.note) B.push({ t: l.note, s: 32, ind: 34 });
+  });
+  B.push({ hr: 1 });
+  B.push({ t: (t.slipNo ? 'ใบสั่ง ' + t.slipNo + ' · ' : '') + (t.createdBy || ''), s: 22 });
+  return B;
+}
+function renderTicket(t) {
+  var W = C.width === '80' ? 576 : 384, pad = 6;
+  var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
+  // รอบแรกวัดความสูง รอบสองวาดจริง
+  function layout(draw) {
+    var y = 4;
+    ticketBlocks(t).forEach(function (k) {
+      if (k.hr) { if (draw) { ctx.fillRect(0, y + 6, W, 3); } y += 16; return; }
+      ctx.font = (k.b ? 'bold ' : '') + k.s + 'px ' + FONT;
+      var lh = Math.round(k.s * 1.45), ind = k.ind || 0;
+      // rt = ข้อความชิดขวาบนบรรทัดแรก (เช่น จำนวนเงิน) ข้อความซ้ายจะตัดบรรทัดไม่ให้ทับ
+      var rtW = k.rt ? ctx.measureText(k.rt).width + 14 : 0;
+      wrap(ctx, k.t, W - pad * 2 - ind - rtW).forEach(function (ln, li) {
+        if (draw) {
+          if (k.inv) { ctx.fillStyle = '#000'; ctx.fillRect(0, y, W, lh); ctx.fillStyle = '#fff'; }
+          ctx.textAlign = k.c ? 'center' : 'left';
+          ctx.fillText(ln, k.c ? W / 2 : pad + ind, y + k.s * 1.1);
+          if (k.rt && li === 0) { ctx.textAlign = 'right'; ctx.fillText(k.rt, W - pad, y + k.s * 1.1); }
+          ctx.fillStyle = '#000';
+        }
+        y += lh;
+      });
+    });
+    return y + 8;
+  }
+  cv.width = W; cv.height = 10;
+  var h = layout(false);
+  cv.height = h;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, h); ctx.fillStyle = '#000'; ctx.textBaseline = 'alphabetic';
+  layout(true);
+  return cv;
+}
+// แปลงรูปเป็นคำสั่ง ESC/POS (GS v 0) แบ่งเป็นแถบละ 128 แถว
+function toEscPos(cv) {
+  var W = cv.width, H = cv.height, bw = W / 8, px = cv.getContext('2d').getImageData(0, 0, W, H).data, out = [0x1b, 0x40];
+  for (var y0 = 0; y0 < H; y0 += 128) {
+    var bh = Math.min(128, H - y0);
+    out.push(0x1d, 0x76, 0x30, 0, bw & 255, bw >> 8, bh & 255, bh >> 8);
+    for (var y = y0; y < y0 + bh; y++) {
+      for (var xb = 0; xb < bw; xb++) {
+        var v = 0;
+        for (var bit = 0; bit < 8; bit++) {
+          var i = (y * W + xb * 8 + bit) * 4;
+          if (px[i] * 0.3 + px[i + 1] * 0.59 + px[i + 2] * 0.11 < 140) v |= 0x80 >> bit;
+        }
+        out.push(v);
+      }
+    }
+  }
+  out.push(0x1b, 0x64, 4);
+  if (C.width === '80') out.push(0x1d, 0x56, 0x42, 0);
+  return new Uint8Array(out);
+}
+async function printTicket(t) { await send(toEscPos(renderTicket(t))); }
+
+/* ---------- ดึงใบสั่งจาก POS ---------- */
+async function runQueue() {
+  if (P.busy || !P.ch) return;
+  P.busy = true;
+  try {
+    while (queue.length && P.ch) {
+      var t = queue[0];
+      if (!done[t.id]) { await printTicket(t); done[t.id] = true; }
+      await api('api=printed&id=' + encodeURIComponent(t.id)).catch(function () {});
+      queue.shift();
+    }
+  } catch (e) {
+    setSt('#pSt', false, 'พิมพ์ไม่สำเร็จ: ' + e.message);
+  }
+  P.busy = false;
+  updateAlert();
+}
+function updateAlert() {
+  var n = queue.length;
+  if (n && !P.ch) { showAlert('⚠️ มีใบสั่งรอพิมพ์ ' + n + ' ใบ แต่เครื่องพิมพ์ยังไม่ได้เชื่อมต่อ'); beep(3); }
+  else showAlert('');
+}
+function poll() {
+  if (!C.url || !C.key || !C.shop) return;
+  api('api=tickets&shop=' + encodeURIComponent(C.shop)).then(function (r) {
+    setSt('#sSt', true, 'ตรวจออเดอร์ล่าสุด ' + new Date().toLocaleTimeString('th-TH') +
+      (r.skipped ? ' · ข้ามใบค้างจากวันก่อน ' + r.skipped + ' ใบ (ไม่พิมพ์)' : ''));
+    var fresh = 0;
+    r.pending.forEach(function (t) {
+      // พิมพ์แล้วแต่แจ้งกลับไม่สำเร็จ แจ้งซ้ำ (ไม่พิมพ์ซ้ำ)
+      if (done[t.id]) { api('api=printed&id=' + encodeURIComponent(t.id)).catch(function () {}); return; }
+      if (!seen[t.id]) { seen[t.id] = true; queue.push(t); fresh++; }
+    });
+    if (fresh) beep(2);
+    recent = r.recent; drawList();
+    runQueue(); updateAlert();
+  }).catch(function (e) { setSt('#sSt', false, 'ดึงออเดอร์ไม่ได้: ' + e.message); });
+}
+function drawList() {
+  $('#list').innerHTML = recent.length ? recent.map(function (t, i) {
+    var tag = t.type === 'cancel' ? '<span class="tag cancel">ยกเลิก</span>' : t.type === 'move' ? '<span class="tag">ย้ายโต๊ะ</span>' :
+      t.type === 'receipt' ? '<span class="tag">ใบเสร็จ</span>' : '';
+    var st = t.status === 'new' && !done[t.id] ? '<span class="tag new">รอพิมพ์</span>' : '';
+    return '<div class="tk"><div><b>โต๊ะ ' + esc(t.table) + '</b> ' + tag + st + '<small>' + hm(t.createdAt) + ' · ' +
+      esc((t.lines || []).map(function (l) { return l.qty + 'x ' + (l.name || l.category) + (l.note ? ' (' + l.note + ')' : ''); }).join(', ')) + '</small></div>' +
+      '<div style="white-space:nowrap"><button class="btn gray sm" data-v="' + i + '">ดู</button> <button class="btn sm" data-r="' + i + '">พิมพ์ซ้ำ</button></div></div>';
+  }).join('') : '<div class="muted">ยังไม่มีใบสั่ง</div>';
+  [].forEach.call(document.querySelectorAll('[data-v]'), function (b) { b.onclick = function () { preview(recent[b.dataset.v]); }; });
+  [].forEach.call(document.querySelectorAll('[data-r]'), function (b) {
+    b.onclick = function () {
+      if (!P.ch) { alert('ยังไม่ได้เชื่อมต่อเครื่องพิมพ์'); return; }
+      printTicket(recent[b.dataset.r]).catch(function (e) { alert('พิมพ์ไม่สำเร็จ: ' + e.message); });
+    };
+  });
+}
+function preview(t) {
+  var pv = $('#pv'); pv.innerHTML = ''; pv.appendChild(renderTicket(t)); pv.style.display = 'flex';
+  pv.onclick = function () { pv.style.display = 'none'; };
+}
+var SAMPLE = { type: 'order', table: '3', zone: 'โซนข้าว', fromShop: 'ร้านใบกะเพรา', createdBy: 'ทดสอบ', slipNo: '0012',
+  lines: [{ qty: 2, category: 'ก๋วยเตี๋ยว', price: 50, note: 'เส้นเล็กต้มยำ ไม่ใส่ถั่วงอก ไม่เผ็ด' }, { qty: 1, category: 'ก๋วยเตี๋ยว', price: 60, note: 'บะหมี่แห้ง พิเศษ' }] };
+$('#bTest').onclick = function () {
+  var t = Object.assign({}, SAMPLE, { createdAt: '0000-00-00 ' + new Date().toTimeString().substr(0, 5) });
+  if (!P.ch) { preview(t); return; }
+  printTicket(t).catch(function (e) { alert('พิมพ์ไม่สำเร็จ: ' + e.message); });
+};
+
+/* ---------- เริ่ม ---------- */
+$('#shopLbl').textContent = C.shop || '';
+if (!C.url || !C.key || !C.shop) showSetup();
+poll();
+setInterval(poll, 5000);
+setInterval(updateAlert, 30000);
+</script>
+</body>
+</html>
