@@ -674,12 +674,14 @@ function thDate(s) { s = String(s || ''); return s.length < 16 ? s : Number(s.su
 function moveInfo(t) { var m = /^ย้ายจากโต๊ะ (.+?) \((.*)\)$/.exec(String(t.info || '')); return m ? { table: m[1], zone: m[2] } : null; }
 function footBlock(t) { return { t: hm(t.createdAt) + (t.createdBy ? ' · พนักงาน ' + t.createdBy : ''), rt: t.slipNo ? 'ใบที่ ' + t.slipNo : '', rtb: 1, s: 20 }; }
 
+// ข้อมูลท้ายใบเสร็จ (ยอด วิธีจ่าย) เก็บเป็น JSON ในช่อง info; check = 1 คือใบแจ้งยอดที่ยังไม่ได้ชำระเงิน
+function rcInfo(t) { try { return JSON.parse(t.info || '{}') || {}; } catch (e) { return {}; } }
 function receiptBlocks(t) {
-  var s = {}, B = [];
-  try { s = JSON.parse(t.info || '{}'); } catch (e) {}
+  var s = rcInfo(t), B = [];
   B.push({ icon: 1, size: 56 });
   B.push({ t: t.fromShop || C.shop || '', s: 32, b: 1, c: 1 });
   if (RECEIPT_TAG) B.push({ t: RECEIPT_TAG, s: 20, c: 1 });
+  if (s.check) B.push({ t: 'ใบแจ้งยอด', s: 40, b: 1, c: 1, box: 1 });
   B.push({ hr: 1 });
   B.push({ t: 'โต๊ะ ' + t.table + (t.zone ? ' · ' + t.zone : ''), rt: thDate(s.paidAt || t.createdAt), s: 20 });
   B.push({ hr: 1 });
@@ -694,6 +696,12 @@ function receiptBlocks(t) {
     B.push({ t: 'ส่วนลด', rt: '-' + num(s.discount), s: 26 });
   }
   B.push({ t: 'รวม', rt: num(s.total) + ' บาท', rtb: 1, s: 36, b: 1 });
+  if (s.check) {
+    B.push({ t: 'ยังไม่ได้ชำระเงิน', s: 26, c: 1 });
+    B.push({ hr: 1 });
+    B.push({ t: 'กรุณาตรวจสอบรายการก่อนชำระเงิน', s: 20, c: 1 });
+    return B;
+  }
   B.push({ t: s.method || 'ชำระเงิน', rt: s.cash ? num(s.cash) : '', s: 26 });
   if (s.cash) B.push({ t: 'เงินทอน', rt: num(s.cash - s.total), s: 26 });
   B.push({ hr: 1 });
@@ -930,12 +938,12 @@ function drawState() {
 }
 function slipTitle(t) {
   var mv = t.type === 'move' ? moveInfo(t) : null;
-  return t.type === 'move' ? 'โต๊ะ ' + (mv ? mv.table : '?') + ' → โต๊ะ ' + t.table : t.type === 'cancel' ? t.zone + ' โต๊ะ ' + t.table : t.type === 'receipt' ? 'ใบเสร็จ โต๊ะ ' + t.table : 'เสิร์ฟที่ ' + t.zone + ' โต๊ะ ' + t.table;
+  return t.type === 'move' ? 'โต๊ะ ' + (mv ? mv.table : '?') + ' → โต๊ะ ' + t.table : t.type === 'cancel' ? t.zone + ' โต๊ะ ' + t.table : t.type === 'receipt' ? (rcInfo(t).check ? 'ใบแจ้งยอด' : 'ใบเสร็จ') + ' โต๊ะ ' + t.table : 'เสิร์ฟที่ ' + t.zone + ' โต๊ะ ' + t.table;
 }
 function typeTag(t) {
   if (t.type === 'cancel') return '<span class="bk-tag bk-tag--cancel">ยกเลิก</span>';
   if (t.type === 'move') return '<span class="bk-tag bk-tag--unsent">ย้ายโต๊ะ</span>';
-  if (t.type === 'receipt') return '<span class="bk-tag bk-tag--plain">ใบเสร็จ</span>';
+  if (t.type === 'receipt') return '<span class="bk-tag bk-tag--plain">' + (rcInfo(t).check ? 'ใบแจ้งยอด' : 'ใบเสร็จ') + '</span>';
   return '<span class="bk-tag bk-tag--' + shopKind(C.shop) + '">ใบสั่ง</span>';
 }
 function drawList() {
@@ -960,7 +968,7 @@ function showSheet(title, cv, again) {
   $('#shPrint').onclick = function () { again(); };
 }
 function preview(t) {
-  var label = t.type === 'cancel' ? 'ใบยกเลิก' : t.type === 'move' ? 'ใบย้ายโต๊ะ' : t.type === 'receipt' ? 'ใบเสร็จ' : 'ใบสั่ง';
+  var label = t.type === 'cancel' ? 'ใบยกเลิก' : t.type === 'move' ? 'ใบย้ายโต๊ะ' : t.type === 'receipt' ? (rcInfo(t).check ? 'ใบแจ้งยอด' : 'ใบเสร็จ') : 'ใบสั่ง';
   showSheet(label + (t.slipNo ? ' ใบที่ ' + t.slipNo : ' โต๊ะ ' + t.table), renderTicket(t), function () { reprint(t); });
 }
 ['#shClose', '#shX', '#shCancel'].forEach(function (id) { $(id).onclick = function () { $('#shWrap').hidden = true; }; });
