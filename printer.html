@@ -778,7 +778,7 @@ function renderBlocks(B) {
       if (k.box) {
         y += 8;
         var bh = lines.length * lh + 16;
-        if (draw) { ctx.save(); ctx.lineWidth = 5; ctx.strokeRect(5, y + 5, W - 10, bh - 2); ctx.restore(); }
+        if (draw) { ctx.save(); ctx.lineWidth = 8; ctx.strokeRect(6, y + 5, W - 12, bh - 2); ctx.restore(); } // เส้นกรอบหนา 8 จุด (5 จุดบนเครื่องจริงออกจางๆ)
         y += 8;
       }
       lines.forEach(function (ln, li) {
@@ -899,8 +899,9 @@ function poll() {
     runQueue(); updateAlert(); drawAgo();
   }).catch(function (e) { pollErr = e.message; $('#pollErr span').textContent = 'ดึงออเดอร์ไม่ได้: ' + e.message; $('#pollErr').hidden = false; updateAlert(); drawAgo(); });
 }
-function isWaiting(t) { return t.status === 'new' && !done[t.id]; }
 function isToday(t) { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return String(t.createdAt).substr(0, 10) === d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+// ใบค้างจากวันก่อนไม่นับว่ารอพิมพ์ (ระบบไม่พิมพ์ให้เอง ต้องกดพิมพ์ซ้ำเองถ้าต้องการ)
+function isWaiting(t) { return t.status === 'new' && !done[t.id] && isToday(t); }
 // "เมื่อ N วินาทีก่อน" และสีแดงถ้าเกิน 1 นาทีไม่มีสัญญาณจาก POS
 function drawAgo() {
   var el = $('#lastAgo'), sec = lastOk ? Math.round((Date.now() - lastOk) / 1000) : -1, bad = sec < 0 ? !!pollErr : sec > 60;
