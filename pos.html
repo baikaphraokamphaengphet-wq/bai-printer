@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f6b3f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="POS ใบกะเพรา">
+<title>POS ใบกะเพรา</title>
+<link rel="manifest" href="pos.webmanifest">
+<link rel="icon" href="pos-icon-192.png">
+<link rel="apple-touch-icon" href="pos-icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap">
+<!--
+  เปิด POS แบบเต็มจอเหมือนแอป: วางไฟล์นี้ (พร้อม pos.webmanifest, pos-icon-192.png, pos-icon-512.png) ไว้บน GitHub Pages ที่เดียวกับ printer.html
+  เปิดครั้งแรกจะถามลิงก์ POS (/exec) แล้วจำไว้ในเครื่องนั้น ลิงก์ไม่ได้อยู่ในไฟล์นี้ (ที่เก็บ GitHub เป็นสาธารณะ)
+  จากนั้นใน Chrome กด ⋮ → เพิ่มลงในหน้าจอหลัก / ติดตั้งแอป จะได้ไอคอนบนหน้าจอ เปิดแล้วไม่มีแถบที่อยู่เว็บ
+  เปลี่ยนลิงก์ภายหลัง: เปิดหน้านี้โดยต่อท้าย ?setup=1
+-->
+<style>
+html, body { margin: 0; height: 100%; background: #2f6b3f; font-family: "Sarabun", "Noto Sans Thai", system-ui, sans-serif; }
+#app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; display: none; background: #eff0ec; }
+#setup { min-height: 100%; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+#setup[hidden] { display: none; }
+.card { width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 12px; padding: 22px; border-radius: 22px; background: #fff; box-shadow: 0 10px 40px #0003; box-sizing: border-box; }
+h1 { margin: 0; font-size: 24px; line-height: 30px; color: #1c261f; }
+p { margin: 0; font-size: 16px; line-height: 24px; color: #565e58; }
+input { font: inherit; font-size: 16px; padding: 12px 14px; border: 2px solid #858b85; border-radius: 14px; min-width: 0; }
+input:focus { outline: 3px solid #f6c21a; border-color: #2f6b3f; }
+button { font: inherit; font-size: 18px; font-weight: 800; min-height: 56px; border: 0; border-radius: 14px; background: #2f6b3f; color: #fff; cursor: pointer; }
+.err { display: none; font-size: 15px; font-weight: 700; color: #b3372b; }
+</style>
+</head>
+<body>
+<div id="setup" hidden>
+  <div class="card">
+    <h1>ตั้งค่า POS บนเครื่องนี้</h1>
+    <p>วางลิงก์ POS ครั้งเดียว (ลิงก์ที่ลงท้ายด้วย /exec จากหน้า Deploy ของ Apps Script) เครื่องนี้จะจำไว้ คนที่เปิดหน้านี้จากเครื่องอื่นจะไม่เห็นลิงก์</p>
+    <input id="url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" spellcheck="false" aria-label="ลิงก์ POS">
+    <div class="err" id="err">ลิงก์ต้องขึ้นต้นด้วย https://script.google.com/macros/s/ และลงท้ายด้วย /exec</div>
+    <button id="save">บันทึกและเปิด POS</button>
+    <p>เปลี่ยนลิงก์ภายหลัง: เปิดหน้านี้โดยต่อท้ายลิงก์ด้วย ?setup=1</p>
+  </div>
+</div>
+<iframe id="app" title="POS ใบกะเพรา"></iframe>
+<script>
+(function () {
+  var KEY = 'pos_exec_url', $ = function (s) { return document.querySelector(s); };
+  function saved() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+  function valid(u) { return /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[\w-]+\/exec$/.test(u); }
+  function openPos(u) { $('#setup').hidden = true; var f = $('#app'); f.src = u; f.style.display = 'block'; }
+  function showSetup() { $('#setup').hidden = false; $('#url').value = saved(); $('#url').focus(); }
+  $('#save').onclick = function () {
+    var u = $('#url').value.trim().replace(/[?#].*$/, '');
+    if (!valid(u)) { $('#err').style.display = 'block'; return; }
+    try { localStorage.setItem(KEY, u); } catch (e) {}
+    history.replaceState(null, '', location.pathname);
+    openPos(u);
+  };
+  $('#url').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('#save').click(); });
+  var u = saved();
+  if (/[?&]setup=1/.test(location.search) || !valid(u)) showSetup(); else openPos(u);
+})();
+</script>
+</body>
+</html>
