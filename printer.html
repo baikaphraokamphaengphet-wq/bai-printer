@@ -184,6 +184,131 @@
 .bk-order__sub .bk-ico { width: 18px; height: 18px; }
 .bk-order__amount { font-size: 20px; font-weight: 800; color: var(--accent-ink); }
 
+/* ---------- หน้าโต๊ะ: กรอบแยกตามร้าน (สีประจำร้าน ใบกะเพรา=เขียว ก๋วยเตี๋ยว=น้ำเงิน กลับบ้าน=ส้ม) ---------- */
+.bk-bd { container-type: inline-size; }
+.zc-rice { --zc: #2f6b3f; --zc-dark: #24562f; --zc-tint: #dcebdf; --zc-wash: #eef5ef; --zc-line: #bcd5c1; }
+.zc-noodle { --zc: #3e5c76; --zc-dark: #2c4760; --zc-tint: #e3ebf2; --zc-wash: #eef3f8; --zc-line: #c3d1de; }
+.zc-take { --zc: #f28a1b; --zc-dark: #7a3f00; --zc-tint: #fde9d0; --zc-wash: #fff6ea; --zc-line: #f3cf9f; }
+#zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-items: start; }
+#zones .bk-zone { margin-top: 0; }
+@container (max-width: 599px) { #zones .bk-zone.is-hidden { display: none; } }
+@container (min-width: 600px) {
+  .bk-stats, .bk-seg { display: none; }
+  #zones { grid-template-columns: repeat(var(--zc, 2), minmax(0, 1fr)); gap: 20px; }
+  #zones .bk-zp--take { grid-column: 1 / -1; }
+  .bk-zp--take .bk-orders { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .bk-zp .bk-tables { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 10px; }
+  .bk-zp__body { padding: 16px; }
+  .bk-zp__head { padding: 14px 16px 0; }
+  .bk-zp__bar { margin: 14px -16px 0; }
+}
+@container (min-width: 1130px) {
+  #zones { grid-template-columns: repeat(var(--zc, 2), minmax(0, 1fr)) 340px; grid-template-rows: repeat(var(--zr, 1), auto); gap: 24px; }
+  #zones .bk-zp--take { grid-column: var(--zt, 3); grid-row: 1 / span var(--zr, 1); }
+  .bk-zp--take .bk-orders { display: flex; }
+  #zones[data-zc="2"] .bk-tables { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.bk-zp { background: var(--zc-wash); border: 2px solid var(--zc-line); border-radius: var(--radius-lg); overflow: hidden; min-width: 0; }
+.bk-zp__head { background: var(--zc); color: #fff; padding: 12px 14px 0; }
+.bk-zp__row { display: flex; align-items: center; gap: 12px; }
+.bk-zp__ico { flex: none; width: 46px; height: 46px; border-radius: 50%; background: #fff; color: var(--zc); display: grid; place-items: center; }
+.bk-zp__ico .bk-ico { width: 26px; height: 26px; }
+.bk-zp__tt { min-width: 0; }
+.bk-zp__tt b { display: block; font-size: 21px; line-height: 26px; font-weight: 800; }
+.bk-zp__tt small { display: block; font-size: 14px; line-height: 19px; font-weight: 600; opacity: .92; }
+.bk-zp__stat { margin-left: auto; text-align: right; white-space: nowrap; }
+.bk-zp__stat b { display: block; font-size: 32px; line-height: 32px; font-weight: 800; }
+.bk-zp__stat small { font-size: 13px; line-height: 17px; font-weight: 600; opacity: .92; }
+.bk-zp__bar { display: block; height: 6px; margin: 12px -14px 0; background: #00000033; }
+.bk-zp__bar i { display: block; height: 100%; background: #ffffffe0; border-radius: 0 3px 3px 0; }
+.bk-zp--take .bk-zp__head { color: #2a1500; }
+.bk-zp--take .bk-zp__ico { background: #2a1500; color: #ffd9a3; }
+.bk-zp--take .bk-zp__bar { background: #2a150026; }
+.bk-zp--take .bk-zp__bar i { background: #2a1500b3; }
+.bk-zp__body { padding: 12px; }
+.bk-zp .bk-tables { grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; }
+.bk-zp .bk-table { padding: 8px 6px 8px 9px; border-color: var(--zc-line); --o-bg: var(--zc); --o-bd: var(--zc); --o-fg: #fff; --o-no: #fff; --o-pill: #00000040; }
+.bk-zp .bk-table__no { color: var(--zc-dark); }
+.bk-zp .bk-table__amount { color: inherit; }
+.bk-zp .bk-table.is-open { background: var(--o-bg); border-color: var(--o-bd); color: var(--o-fg); }
+.bk-zp .bk-table.is-open .bk-table__no { color: var(--o-no); }
+.bk-zp .bk-table.is-open .bk-table__state { color: var(--o-fg); font-weight: 700; }
+.bk-zp .bk-time { padding: 1px 7px 1px 5px; border-radius: var(--radius-pill); background: var(--o-pill); color: #fff; }
+.bk-zp .bk-table.is-long { border-color: var(--danger); box-shadow: 0 0 0 2px var(--danger); }
+.bk-zp .bk-table.is-long .bk-time { background: var(--danger); color: #fff; }
+.bk-zp .bk-table__other { border-color: var(--zc-wash); }
+.bk-zp .bk-take { grid-template-columns: 1fr; }
+.bk-zp .bk-take__btn { width: 100%; border-color: #d9780f; color: #7a3f00; }
+.bk-zp .bk-order { padding: 10px 12px 10px 10px; border-color: var(--zc-line); background: var(--surface); }
+.bk-zp .bk-order__no { background: var(--zc); color: #2a1500; }
+.bk-zp .bk-order__sub, .bk-zp .bk-order__amount { color: var(--zc-dark); }
+.bk-order__tags { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: -2px; }
+.bk-payat { display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 10px 0 7px; border-radius: 13px; font-size: 14px; font-weight: 700; white-space: nowrap; }
+.bk-payat .bk-ico { width: 15px; height: 15px; }
+.bk-payat--rice { background: #dcebdf; color: #24562f; }
+.bk-payat--noodle { background: #e3ebf2; color: #2c4760; }
+.bk-zp .bk-order.is-late { border-color: var(--danger); background: var(--danger-tint); }
+.bk-zp .bk-order.is-late .bk-order__no { background: var(--danger); color: #fff; }
+.bk-zp .bk-order.is-late .bk-order__sub, .bk-zp .bk-order.is-late .bk-order__amount { color: var(--danger); }
+.bk-zp .bk-order.is-done { border-style: dashed; border-color: #d6c6a8; background: transparent; }
+.bk-zp .bk-order.is-done .bk-order__no { background: #d9d6cf; color: var(--ink-muted); }
+.bk-zp .bk-order.is-done .bk-order__sub, .bk-zp .bk-order.is-done .bk-order__amount, .bk-zp .bk-order.is-done .bk-order__name { color: var(--ink-muted); }
+.bk-seg__dot { width: 14px; height: 14px; border-radius: 50%; background: var(--sc); flex: none; }
+.bk-seg__item { --sc: var(--brand); }
+.bk-seg__item[data-k="all"] { --sc: var(--ink); }
+.bk-seg__item[data-k="rice"] { --sc: #2f6b3f; }
+.bk-seg__item[data-k="noodle"] { --sc: #3e5c76; }
+.bk-seg__item[data-k="take"] { --sc: #f28a1b; }
+.bk-seg__item[data-k]:has(.bk-seg__dot) { padding-left: 12px; }
+.bk-seg__item.is-active { background: var(--sc); border-color: var(--sc); }
+.bk-seg__item.is-active .bk-seg__dot { background: #fff; }
+.bk-seg__item[data-k="take"].is-active { color: #2a1500; }
+.bk-seg__item[data-k="take"].is-active .bk-seg__dot { background: #2a1500; }
+.bk-seg__item[data-k="take"].is-active .bk-seg__count { background: #2a150026; }
+
+/* ---------- เข้าระบบ / สิทธิ์ (พนักงานเห็นเฉพาะหน้าโต๊ะ) ---------- */
+.is-login .bk-topnav, .is-login .bk-tabbar, .is-login #staffBtn { display: none !important; }
+.is-staff [data-v="report"], .is-staff [data-v="settings"], .is-staff .bk-tabbar { display: none !important; }
+.bk-login { display: flex; justify-content: center; padding: 8px 0 24px; }
+.bk-login__card { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-card); }
+.bk-login__title { font-size: 24px; line-height: 30px; font-weight: 800; }
+.bk-login__sub { margin: -6px 0 2px; font-size: 16px; color: var(--ink-muted); font-weight: 600; }
+.bk-login__grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.bk-staffbtn small { display: block; font-size: 13px; line-height: 17px; font-weight: 600; color: var(--ink-muted); }
+.bk-staffbtn .bk-grow { min-width: 0; text-align: left; }
+.bk-login__nopin, .bk-staffbtn small.bk-login__nopin { color: var(--danger); }
+.bk-login__owner { margin-top: 4px; border-color: var(--accent-strong); background: var(--accent-tint); }
+.bk-login__owner .bk-staffbtn__av { background: var(--brand); }
+.bk-login__pinbox { max-width: 400px; align-items: stretch; text-align: center; }
+.bk-login__av { align-self: center; width: 64px; height: 64px; font-size: 34px; }
+
+/* ---------- บิลที่ปิดแล้ววันนี้ ---------- */
+.bk-bdtools { display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.bk-bdtools .bk-btn { min-height: 44px; font-size: 16px; padding: 0 16px; }
+.bk-clrow { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 64px; padding: 8px 4px; border: 0; border-bottom: 2px solid var(--line); background: none; text-align: left; }
+.bk-clrow__t { font-size: 16px; font-weight: 800; color: var(--ink-muted); }
+.bk-clrow__n { display: block; font-size: 18px; line-height: 23px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-clrow__m { display: flex; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; font-weight: 600; color: var(--ink-muted); }
+.bk-clrow__a { font-size: 19px; font-weight: 800; white-space: nowrap; text-align: right; }
+.bk-paytag { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 11px; font-size: 13px; font-weight: 800; }
+.bk-paytag--cash { background: var(--brand-tint); color: var(--brand-dark); }
+.bk-paytag--transfer { background: var(--noodle-tint); color: var(--noodle); }
+.bk-sumline { display: flex; justify-content: space-between; gap: 10px; font-size: 17px; font-weight: 700; }
+.bk-sumline b { font-size: 22px; }
+
+/* ---------- ปิดยอดสิ้นวัน ---------- */
+.bk-dc { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 2px solid var(--line); border-radius: var(--radius-md); }
+.bk-dc__h { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; }
+.bk-dc__ln { display: flex; justify-content: space-between; gap: 10px; font-size: 16px; font-weight: 600; }
+.bk-dc__ln b { font-size: 18px; }
+.bk-dc__muted { color: var(--ink-muted); }
+.bk-dc__res { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg); font-size: 16px; font-weight: 700; }
+.bk-dc__res.is-short { background: var(--danger-tint); color: var(--danger); }
+.bk-dc__res.is-over { background: var(--accent-tint); color: var(--accent-ink); }
+.bk-dc__res.is-ok { background: var(--brand-wash); color: var(--brand-dark); }
+.bk-dch { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; font-size: 15px; font-weight: 600; }
+.bk-dch span:nth-child(3n) { text-align: right; font-weight: 800; }
+
 /* ---------- หน้าบิล ---------- */
 .bk-billbar { flex: none; display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 var(--space-3); background: var(--brand); color: var(--on-brand); }
 .bk-billbar__title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
@@ -454,6 +579,9 @@ body.bk{min-height:100vh}
 .bk-sheet{position:fixed;left:50%;right:auto;bottom:0;width:100%;max-width:560px;transform:translateX(-50%);z-index:21;overflow-y:auto}
 #shBox{display:flex;justify-content:center;overflow:auto;max-height:60vh;background:var(--bg);border-radius:var(--radius-md);padding:12px}
 #shBox canvas{max-width:100%;background:#fff;box-shadow:var(--shadow-card)}
+/* ข้อความแจ้งบนหน้า (แทนกล่อง alert ของเบราว์เซอร์ที่มีหัวภาษาอังกฤษ) */
+.pnote{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:40;width:calc(100% - 32px);max-width:520px;box-sizing:border-box;padding:14px 16px;border-radius:var(--radius-md);background:var(--ink);color:#fff;font-size:16px;line-height:22px;font-weight:700;box-shadow:0 8px 24px #0004}
+.pnote.is-err{background:var(--danger)}
 </style>
 </head>
 <body class="bk">
@@ -519,6 +647,7 @@ body.bk{min-height:100vh}
 
   <div class="bk-btn-row"><button class="bk-btn bk-btn--ghost bk-btn--tall" id="bTest">พิมพ์ทดสอบ</button><button class="bk-btn bk-btn--ghost bk-btn--tall" id="bForm">พิมพ์บิลสำรอง</button><button class="bk-btn bk-btn--ghost bk-btn--tall" id="bSet">ตั้งค่า</button></div>
 </main>
+<div class="pnote" id="note" role="status" hidden></div>
 <div id="shWrap" hidden><div class="bk-scrim" id="shClose"></div><div class="bk-sheet" role="dialog"><span class="bk-sheet__grab"></span><div class="bk-sheet__title"><span id="shTitle"></span><button class="bk-iconbtn bk-iconbtn--soft" id="shX" aria-label="ปิด" style="background:var(--bg);color:var(--ink)"><svg class="bk-ico" aria-hidden="true"><use href="#i-close"/></svg></button></div><div id="shBox"></div><div class="bk-row"><button class="bk-btn bk-btn--ghost bk-btn--tall" id="shCancel">ปิด</button><button class="bk-btn bk-btn--main bk-btn--tall" id="shPrint" style="flex:1"><svg class="bk-ico" aria-hidden="true"><use href="#i-printer"/></svg> พิมพ์ซ้ำ</button></div></div></div>
 
 <script>
@@ -554,6 +683,18 @@ function setSt(ok, txt, sub, idle) {
   el.querySelector('use').setAttribute('href', '#' + (idle ? 'i-printer' : ok ? 'i-check' : 'i-alert'));
 }
 function showAlert(txt) { var a = $('#alert'); $('#alertTxt').textContent = txt || ''; a.style.display = txt ? 'flex' : 'none'; }
+// ข้อความแจ้งด้านล่างจอ หายเองใน 5 วินาที
+function note(txt, err) {
+  var n = $('#note'); n.textContent = txt; n.className = 'pnote' + (err ? ' is-err' : ''); n.hidden = false;
+  clearTimeout(note.t); note.t = setTimeout(function () { n.hidden = true; }, 5000);
+}
+var NOT_CONN = 'ยังไม่ได้เชื่อมต่อเครื่องพิมพ์ กด "เชื่อมต่อเครื่องพิมพ์" ก่อน';
+// รหัสของเครื่องนี้ (ใช้จองใบก่อนพิมพ์ ถ้าเปิดหน้านี้ไว้หลายเครื่องในร้านเดียวกัน เครื่องเดียวเป็นคนพิมพ์)
+var DEV = (function () {
+  var d = ''; try { d = localStorage.getItem('printer_dev') || ''; } catch (e) {}
+  if (!d) { d = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); try { localStorage.setItem('printer_dev', d); } catch (e) {} }
+  return d;
+})();
 
 /* ---------- เสียง / เปิดจอค้าง ---------- */
 function beep(times) {
@@ -589,11 +730,11 @@ $('#cLoad').onclick = function () {
   C.url = $('#cUrl').value.trim(); C.key = $('#cKey').value.trim();
   api('api=shops').then(function (r) {
     $('#cShop').innerHTML = r.shops.map(function (s) { return '<option' + (s === C.shop ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('');
-  }).catch(function (e) { alert('โหลดไม่สำเร็จ: ' + e.message); });
+  }).catch(function (e) { note('โหลดไม่สำเร็จ: ' + e.message, true); });
 };
 $('#cSave').onclick = function () {
   C.url = $('#cUrl').value.trim(); C.key = $('#cKey').value.trim(); C.shop = $('#cShop').value; C.width = $('#cWidth').value;
-  if (!C.url || !C.key || !C.shop) { alert('กรอกลิงก์ รหัส และเลือกร้านให้ครบ'); return; }
+  if (!C.url || !C.key || !C.shop) { note('กรอกลิงก์ รหัส และเลือกร้านให้ครบ', true); return; }
   saveCfg(); $('#setup').style.display = 'none'; showShop(); poll();
 };
 
@@ -601,7 +742,7 @@ $('#cSave').onclick = function () {
 $('#bConn').onclick = function () {
   if (!audio) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
   keepAwake();
-  if (!navigator.bluetooth) { alert('เครื่องนี้ใช้บลูทูธจากหน้าเว็บไม่ได้\nต้องเปิดด้วย Chrome บน Android และเปิดลิงก์แบบ https'); return; }
+  if (!navigator.bluetooth) { note('เครื่องนี้ใช้บลูทูธจากหน้าเว็บไม่ได้ ต้องเปิดด้วย Chrome บน Android และเปิดลิงก์แบบ https', true); return; }
   navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SERVICES }).then(function (dev) {
     P.dev = dev;
     dev.addEventListener('gattserverdisconnected', onDisconnect);
@@ -912,7 +1053,12 @@ async function runQueue() {
   try {
     while (queue.length && P.ch) {
       var t = queue[0];
-      if (!done[t.id]) { await printTicket(t); done[t.id] = true; }
+      if (!done[t.id]) {
+        // จองใบก่อนพิมพ์: ถ้าอีกเครื่องของร้านนี้จองไว้แล้ว ข้ามไป (กันพิมพ์ซ้ำ) จองไม่สำเร็จเพราะเน็ต/POS รุ่นเก่า พิมพ์ไปเลย (กันใบสั่งหาย)
+        var c = await api('api=claim&id=' + encodeURIComponent(t.id) + '&dev=' + DEV).catch(function () { return { mine: true }; });
+        if (c.mine === false) { queue.shift(); delete seen[t.id]; drawList(); continue; }
+        await printTicket(t); done[t.id] = true;
+      }
       await api('api=printed&id=' + encodeURIComponent(t.id)).catch(function () {});
       queue.shift();
       drawList();
@@ -995,8 +1141,8 @@ function drawList() {
   drawState();
 }
 function reprint(t, cv) {
-  if (!P.ch) { alert('ยังไม่ได้เชื่อมต่อเครื่องพิมพ์'); return; }
-  (cv ? printCanvas(cv) : printTicket(t)).catch(function (e) { alert('พิมพ์ไม่สำเร็จ: ' + e.message); });
+  if (!P.ch) { note(NOT_CONN, true); return; }
+  (cv ? printCanvas(cv) : printTicket(t)).catch(function (e) { note('พิมพ์ไม่สำเร็จ: ' + e.message, true); });
 }
 // แผงดูหน้าตากระดาษ พิมพ์ซ้ำได้
 function showSheet(title, cv, again) {
@@ -1008,13 +1154,13 @@ function preview(t) {
   showSheet(label + (t.slipNo ? ' ใบที่ ' + t.slipNo : (takeOf(t) ? ' ' : ' โต๊ะ ') + t.table), renderTicket(t), function () { reprint(t); });
 }
 ['#shClose', '#shX', '#shCancel'].forEach(function (id) { $(id).onclick = function () { $('#shWrap').hidden = true; }; });
-$('#bAll').onclick = function () { if (!P.ch) { alert('ยังไม่ได้เชื่อมต่อเครื่องพิมพ์'); return; } runQueue(); };
+$('#bAll').onclick = function () { if (!P.ch) { note(NOT_CONN, true); return; } runQueue(); };
 var SAMPLE = { type: 'order', table: '3', zone: 'โซนข้าว', fromShop: 'ร้านใบกะเพรา', createdBy: 'ทดสอบ', slipNo: '0012',
   lines: [{ qty: 2, category: 'ก๋วยเตี๋ยว', price: 50, name: 'ราดหน้าหมูหมัก', note: 'เส้นเล็ก ไม่ใส่ถั่วงอก ไม่เผ็ด' }, { qty: 1, category: 'ก๋วยเตี๋ยว', price: 60, name: 'ก๋วยเตี๋ยวหมูน้ำใส', note: '' }] };
 $('#bTest').onclick = function () {
   var t = Object.assign({}, SAMPLE, { createdAt: '0000-00-00 ' + new Date().toTimeString().substr(0, 5) });
   if (!P.ch) { preview(t); return; }
-  printTicket(t).catch(function (e) { alert('พิมพ์ไม่สำเร็จ: ' + e.message); });
+  printTicket(t).catch(function (e) { note('พิมพ์ไม่สำเร็จ: ' + e.message, true); });
 };
 $('#bForm').onclick = function () {
   var cv = renderForm();
