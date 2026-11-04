@@ -309,6 +309,23 @@
 .bk-dch { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; font-size: 15px; font-weight: 600; }
 .bk-dch span:nth-child(3n) { text-align: right; font-weight: 800; }
 
+/* ---------- จ่ายสองแบบ / แยกจ่าย ---------- */
+.bk-methods--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.bk-methods--3 .bk-method { font-size: 17px; gap: 6px; padding: 0 6px; white-space: nowrap; }
+.bk-mixnote { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--brand-dark); }
+.bk-mixnote.is-bad { color: var(--danger); }
+#paySplit.is-on { border-color: var(--accent-strong); background: var(--accent-tint); color: var(--accent-ink); }
+.bk-line--pick { cursor: pointer; margin: 0 -8px; padding: 8px; border-radius: var(--radius-sm); }
+.bk-line--pick.is-on { background: var(--brand-wash); }
+.bk-line--pick:not(.is-on) .bk-line__sum { color: var(--ink-muted); }
+.bk-line--wait { opacity: .6; }
+.bk-pick { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.bk-pick__box { flex: none; width: 26px; height: 26px; margin-top: 1px; display: grid; place-items: center; border: 2px solid var(--line-strong); border-radius: 7px; background: var(--surface); color: var(--on-brand); }
+.bk-line--pick.is-on .bk-pick__box { border-color: var(--brand); background: var(--brand); }
+.bk-pickqty { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+.bk-pickqty b { min-width: 34px; text-align: center; font-size: 15px; }
+.bk-pickqty__b { width: 36px; height: 36px; border: 2px solid var(--line-strong); border-radius: 10px; background: var(--surface); font-size: 20px; font-weight: 800; line-height: 1; }
+
 /* ---------- หน้าบิล ---------- */
 .bk-billbar { flex: none; display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 var(--space-3); background: var(--brand); color: var(--on-brand); }
 .bk-billbar__title { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; }
@@ -852,8 +869,14 @@ function receiptBlocks(t) {
     B.push({ t: 'กรุณาตรวจสอบรายการก่อนชำระเงิน', s: 20, c: 1 });
     return B;
   }
-  B.push({ t: s.method || 'ชำระเงิน', rt: s.cash ? num(s.cash) : '', s: 26 });
-  if (s.cash) B.push({ t: 'เงินทอน', rt: num(s.cash - s.total), s: 26 });
+  if (s.cashPart != null) {   // จ่ายสองแบบ: บอกยอดโอนและเงินสดแยกกัน เงินทอนคิดจากส่วนเงินสด
+    B.push({ t: 'โอน', rt: num(s.transferPart), s: 26 });
+    B.push({ t: 'เงินสด', rt: num(s.cashPart), s: 26 });
+    if (s.cash) { B.push({ t: 'รับเงินสด', rt: num(s.cash), s: 26 }); B.push({ t: 'เงินทอน', rt: num(s.change), s: 26 }); }
+  } else {
+    B.push({ t: s.method || 'ชำระเงิน', rt: s.cash ? num(s.cash) : '', s: 26 });
+    if (s.cash) B.push({ t: 'เงินทอน', rt: num(s.cash - s.total), s: 26 });
+  }
   B.push({ hr: 1 });
   RECEIPT_FOOT.forEach(function (x) { B.push({ t: x, s: 20, c: 1 }); });
   return B;
