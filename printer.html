@@ -96,7 +96,7 @@
 .bk-brand__mark { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--brand-dark); display: grid; place-items: center; }
 .bk-brand__mark .bk-ico { width: 22px; height: 22px; }
 .bk-staff { display: flex; align-items: center; gap: 8px; height: var(--tap-min); padding: 0 16px 0 6px; border: 0; border-radius: var(--radius-pill); background: var(--on-brand-soft); color: var(--on-brand); font-size: 17px; font-weight: 700; }
-.bk-staff__avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 800; }
+.bk-staff__avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-weight: 800; font-size: 20px; line-height: 1; }
 .bk-topnav { display: flex; gap: var(--space-2); margin-right: auto; margin-left: var(--space-5); }
 .bk-topnav__item { height: var(--tap-min); padding: 0 22px; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--on-brand); font-size: 18px; font-weight: 700; }
 .bk-topnav__item.is-active { background: var(--accent); color: var(--on-accent); }
@@ -155,7 +155,14 @@
 .bk-table { position: relative; display: flex; flex-direction: column; justify-content: space-between; min-height: 104px; padding: 8px 8px 8px 10px; border: 2px solid var(--line); border-radius: var(--radius-md); background: var(--surface); text-align: left; }
 .bk-table__no { font-size: 28px; line-height: 30px; font-weight: 800; }
 .bk-table__state { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--ink-muted); }
-.bk-table__amount { font-size: 20px; line-height: 24px; font-weight: 800; color: var(--accent-ink); }
+.bk-table__amount { font-size: 20px; line-height: 24px; font-weight: 800; color: var(--accent-ink); white-space: nowrap; }
+.bk-table__amount small { font-size: 14px; font-weight: 700; }
+@media (max-width: 600px) {
+  .bk-table__amount.is-l { font-size: 17px; }
+  .bk-table__amount.is-xl { font-size: 15px; }
+  .bk-table__amount.is-l small { font-size: 12px; }
+  .bk-table__amount.is-xl small { font-size: 11px; }
+}
 .bk-time { display: inline-flex; align-items: center; align-self: flex-start; gap: 3px; font-size: 14px; line-height: 18px; font-weight: 700; color: var(--accent-ink); }
 .bk-time { white-space: nowrap; }
 .bk-time .bk-ico { width: 15px; height: 15px; }
@@ -323,7 +330,7 @@
 .bk-priceview small { font-size: 20px; color: var(--ink-muted); font-weight: 700; }
 .bk-staffbtn { display: flex; align-items: center; gap: 14px; min-height: 68px; padding: 0 16px 0 10px; border: 2px solid var(--line-strong); border-radius: var(--radius-md); background: var(--surface); font-size: 22px; font-weight: 800; text-align: left; }
 .bk-staffbtn.is-active { border-color: var(--brand); background: var(--brand-wash); }
-.bk-staffbtn__av { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 22px; font-weight: 800; }
+.bk-staffbtn__av { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-size: 26px; font-weight: 800; line-height: 1; }
 .bk-catgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .bk-catgrid .bk-cat { height: 60px; border-radius: var(--radius-md); white-space: normal; text-align: center; line-height: 22px; }
 .bk-result { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 12px; min-height: 68px; padding: 10px 14px; border: 2px solid var(--line); border-radius: var(--radius-md); background: var(--surface); text-align: left; }
@@ -683,7 +690,9 @@ function receiptBlocks(t) {
   if (RECEIPT_TAG) B.push({ t: RECEIPT_TAG, s: 20, c: 1 });
   if (s.check) B.push({ t: 'ใบแจ้งยอด', s: 40, b: 1, c: 1, box: 1 });
   B.push({ hr: 1 });
-  B.push({ t: 'โต๊ะ ' + t.table + (t.zone ? ' · ' + t.zone : ''), rt: thDate(s.paidAt || t.createdAt), s: 20 });
+  var tk = takeOf(t);
+  B.push({ t: tk ? t.table + ' · กลับบ้าน' : 'โต๊ะ ' + t.table + (t.zone ? ' · ' + t.zone : ''), rt: thDate(s.paidAt || t.createdAt), s: 20 });
+  if (tk && tk.customer) B.push({ t: 'คุณ ' + String(tk.customer).replace(/^คุณ\s*/, ''), s: 22 });
   B.push({ hr: 1 });
   (t.lines || []).forEach(function (l) {
     B.push({ t: l.name || l.category, rt: num(l.price * l.qty), rtb: 1, s: 26 });
@@ -709,8 +718,33 @@ function receiptBlocks(t) {
   return B;
 }
 // ใบสั่งครัว: ชนิดใบอยู่ในกรอบหนา (พื้นดำผืนใหญ่บนเครื่องพิมพ์ความร้อนออกเป็นสีเทาจุดๆ อ่านยาก) ตามด้วยโซนและเลขโต๊ะตัวใหญ่ที่สุด
+// ออเดอร์กลับบ้านแนบข้อมูลมาในช่อง extra {takeaway, customer, pickupAt} ใบโต๊ะไม่มี
+function takeOf(t) { return t && t.extra && t.extra.takeaway ? t.extra : null; }
+// ใบสั่งกลับบ้าน/ใบยกเลิกของออเดอร์กลับบ้าน: กรอบ "ใส่กล่องกลับบ้าน" เลขออเดอร์ตัวใหญ่ ชื่อลูกค้าและเวลามารับ แล้วตามด้วยรายการ
+function takeBlocks(t, tk) {
+  var B = [];
+  B.push({ t: 'ใบสั่ง · ' + (C.shop || ''), s: 20, c: 1 });
+  B.push({ t: t.type === 'cancel' ? 'ยกเลิก' : 'ใส่กล่องกลับบ้าน', s: 40, b: 1, c: 1, box: 1 });
+  B.push({ tbl: { label: 'ออเดอร์', val: String(t.table), big: 120 } });
+  if (tk.customer) B.push({ t: tk.customer, s: 32, b: 1, c: 1 });
+  if (tk.pickupAt) B.push({ t: 'มารับ ' + String(tk.pickupAt).substr(11, 5), s: 30, b: 1, c: 1 });
+  B.push({ hr: 1 });
+  (t.lines || []).forEach(function (l) {
+    B.push({ line: l.qty + ' ×', t: l.name || l.category, s: 28, b: 1 });
+    if (l.note) B.push({ t: l.note, s: 22, b: 1, ind: 62, gap: 8 });
+  });
+  if (t.type === 'cancel') {
+    B.push({ t: 'ไม่ต้องทำรายการนี้', s: 30, b: 1, c: 1, box: 1 });
+    B.push({ t: 'ถ้าทำไปแล้ว ให้แจ้งพนักงานหน้าร้าน', s: 22 });
+  }
+  B.push({ hr: 1 });
+  B.push(footBlock(t));
+  return B;
+}
 function ticketBlocks(t) {
   if (t.type === 'receipt') return receiptBlocks(t);
+  var tk = takeOf(t);
+  if (tk) return takeBlocks(t, tk);
   var B = [], zone = t.zone || '', mv = t.type === 'move' ? moveInfo(t) : null;
   B.push({ t: 'ใบสั่ง · ' + (C.shop || ''), s: 20, c: 1 });
   B.push({ t: { cancel: 'ยกเลิก', move: 'ย้ายโต๊ะ' }[t.type] || 'เสิร์ฟที่', s: 40, b: 1, c: 1, box: 1 });
@@ -938,6 +972,8 @@ function drawState() {
 }
 function slipTitle(t) {
   var mv = t.type === 'move' ? moveInfo(t) : null;
+  var tk = takeOf(t), who = tk && tk.customer ? ' · ' + tk.customer : '';
+  if (tk) return (t.type === 'cancel' ? 'ยกเลิก ' : t.type === 'receipt' ? (rcInfo(t).check ? 'ใบแจ้งยอด ' : 'ใบเสร็จ ') : 'กลับบ้าน ') + t.table + who;
   return t.type === 'move' ? 'โต๊ะ ' + (mv ? mv.table : '?') + ' → โต๊ะ ' + t.table : t.type === 'cancel' ? t.zone + ' โต๊ะ ' + t.table : t.type === 'receipt' ? (rcInfo(t).check ? 'ใบแจ้งยอด' : 'ใบเสร็จ') + ' โต๊ะ ' + t.table : 'เสิร์ฟที่ ' + t.zone + ' โต๊ะ ' + t.table;
 }
 function typeTag(t) {
@@ -969,7 +1005,7 @@ function showSheet(title, cv, again) {
 }
 function preview(t) {
   var label = t.type === 'cancel' ? 'ใบยกเลิก' : t.type === 'move' ? 'ใบย้ายโต๊ะ' : t.type === 'receipt' ? (rcInfo(t).check ? 'ใบแจ้งยอด' : 'ใบเสร็จ') : 'ใบสั่ง';
-  showSheet(label + (t.slipNo ? ' ใบที่ ' + t.slipNo : ' โต๊ะ ' + t.table), renderTicket(t), function () { reprint(t); });
+  showSheet(label + (t.slipNo ? ' ใบที่ ' + t.slipNo : (takeOf(t) ? ' ' : ' โต๊ะ ') + t.table), renderTicket(t), function () { reprint(t); });
 }
 ['#shClose', '#shX', '#shCancel'].forEach(function (id) { $(id).onclick = function () { $('#shWrap').hidden = true; }; });
 $('#bAll').onclick = function () { if (!P.ch) { alert('ยังไม่ได้เชื่อมต่อเครื่องพิมพ์'); return; } runQueue(); };
