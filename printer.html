@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>เครื่องพิมพ์ใบสั่ง</title>
+<!-- ติดตั้งเป็นแอปบนหน้าจอหลักได้ (ไอคอนสีเหลืองรูปเครื่องพิมพ์ แยกจากแอป POS สีเขียว) -->
+<meta name="theme-color" content="#f6c21a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="เครื่องพิมพ์">
+<link rel="manifest" href="printer.webmanifest">
+<link rel="icon" href="printer-icon-192.png">
+<link rel="apple-touch-icon" href="printer-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap">
@@ -310,8 +318,10 @@
 .bk-dch span:nth-child(3n) { text-align: right; font-weight: 800; }
 
 /* ---------- จ่ายสองแบบ / แยกจ่าย ---------- */
-.bk-methods--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.bk-methods--3 .bk-method { font-size: 17px; gap: 6px; padding: 0 6px; white-space: nowrap; }
+.bk-methods.bk-methods--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bk-methods--3 .bk-method.bk-method { font-size: 16px; gap: 4px; padding: 0 4px; white-space: nowrap; }
+.bk-methods--3 .bk-method .bk-ico { width: 20px; height: 20px; }
+.bk-due .bk-due__sum { white-space: nowrap; }
 .bk-mixnote { margin-top: 6px; font-size: 15px; font-weight: 700; color: var(--brand-dark); }
 .bk-mixnote.is-bad { color: var(--danger); }
 #paySplit.is-on { border-color: var(--accent-strong); background: var(--accent-tint); color: var(--accent-ink); }

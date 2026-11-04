@@ -1,9 +1,10 @@
 {
+  "id": "pos",
   "name": "POS ใบกะเพรา",
   "short_name": "POS ใบกะเพรา",
   "lang": "th",
   "start_url": "pos.html",
-  "scope": "./",
+  "scope": "pos",
   "display": "standalone",
   "background_color": "#2f6b3f",
   "theme_color": "#2f6b3f",
